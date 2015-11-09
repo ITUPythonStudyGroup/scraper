@@ -26,13 +26,11 @@ To be continued.
 
 URL = 'http://www.kickstarter.com/discover/advanced?sort=end_date&format=json&category_id=%d&page=%d'
 DB = {
-    'host': '52.28.17.23',
+    'host': 'rethinkdb',
     'port': 28015,
     'db': 'kickstarter',
 }
-TABLE = 'projectsLive'
-PRIMARY = 'scraped'
-INDEXES = ['id', 'launched_at', 'deadline']
+TABLE = 'projects_live'
 CATEGORIES = [1, 3, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 26]
 
 def addScraped(project):
@@ -42,11 +40,6 @@ def addScraped(project):
 def scrape():
 
     connection = r.connect(**DB).repl()
-
-    if TABLE not in r.table_list().run():
-        r.table_create(TABLE, primary_key=PRIMARY).run()
-    for index in (set(INDEXES) - set(r.table(TABLE).index_list().run())):
-        r.table(TABLE).index_create(index).run()
 
     for category in CATEGORIES:
         page = 1

@@ -4,8 +4,6 @@ Depending on which filter is chosen, recent will mean something different. One
 filter might scrape the most recently launched projects, while another might
 scrape the ones that were recently funded.
 
-Note that this scraper will create create missing tables and indexes.
-
 A filter name must be supplied as first argument. See the FILTERS dictionary
 below for available filters.
 
@@ -30,14 +28,12 @@ FILTERS = {
     'launched': {
         'url': BASE % 'sort=newest&format=json&page=%d',
         'break': 'launched_at',
-        'table': 'projectsRecentlyLaunched',
-        'indexes': ['launched_at', 'deadline']
+        'table': 'projects_recently_launched'
     },
     'funded': {
-        'table': 'projectsRecentlyFunded',
+        'table': 'projects_recently_funded',
         'url': BASE % 'state=successful&sort=end_date&format=json&page=%d',
-        'break': 'deadline',
-        'indexes': ['launched_at', 'deadline']
+        'break': 'deadline'
     }
 }
 
@@ -46,22 +42,7 @@ def scrape(filter, minutes):
     filter = FILTERS[filter]
     stop = int(time.time()) - minutes * 60
 
-    '''
-    Here we connect to the database and ensure that the table is created and have
-    the desired indexes. Note that exceptions are going to be thrown on successful
-    runs where the table and indexes already exist, and thus we are not interested
-    in doing anything with the exceptions besides catching them.
-
-    https://rethinkdb.com/api/python/table_create/
-    https://rethinkdb.com/api/python/index_create/
-    '''
-
-    connection = r.connect("52.28.17.23", 28015, db='kickstarter')
-    try: r.table_create(filter['table']).run(connection)
-    except r.ReqlRuntimeError: pass
-    for index in filter['indexes']:
-        try: r.table(filter['table']).index_create(index).run(connection)
-        except r.ReqlRuntimeError: pass
+    connection = r.connect("rethinkdb", 28015, db='kickstarter')
 
     '''
     Here we are doing the actual scraping. When we reach a project that is less

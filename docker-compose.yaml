@@ -1,0 +1,10 @@
+scraper:
+  build: .
+  links:
+    - rethinkdb
+rethinkdb:
+  image: rethinkdb
+  ports:
+    - "80:8080"
+  volumes:
+    - $PWD:/data

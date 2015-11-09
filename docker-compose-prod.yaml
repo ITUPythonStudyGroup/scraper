@@ -1,0 +1,6 @@
+scraper:
+  environment:
+    PROD: 'true'
+  restart: always
+rethinkdb:
+  restart: always
