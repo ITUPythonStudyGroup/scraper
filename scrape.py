@@ -90,9 +90,9 @@ logging.info('Finished preparing')
 
 # https://github.com/dbader/schedule/issues/55
 logging.info('Started scheduling jobs')
-schedule.every().hour.at('00:00').do(lambda: logRecentScrape('launched', 65))
-schedule.every().hour.at('00:05').do(lambda: logRecentScrape('funded', 65))
-schedule.every().hour.at('00:10').do(scrapeLive)
+schedule.every().day.at('00:00').do(lambda: logRecentScrape('launched', 24 * 60 + 5))
+schedule.every().day.at('00:05').do(lambda: logRecentScrape('funded', 24 * 60 + 5))
+schedule.every().day.at('00:10').do(scrapeLive)
 if os.environ.get('PROD') is None:
     logging.info('Running all jobs and exiting')
     schedule.run_all(0)
