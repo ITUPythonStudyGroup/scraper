@@ -52,7 +52,6 @@ def scrape():
             result = r.table(TABLE).insert(live, conflict="replace").run()
             if len(projects) != len(live): break
             page += 1
-        print('Scraped %d pages for category %d' % (page, category))
 
     connection.close()
 

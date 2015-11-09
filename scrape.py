@@ -1,6 +1,11 @@
-import schedule, time, datetime, os, sys, rethinkdb as r
+import schedule, time, datetime, os, sys, logging, json, rethinkdb as r
 import scrape_projects_recent, scrape_projects_live
 
+LOGGING = {
+    'stream': sys.stdout,
+    'level': logging.INFO,
+    'format': '%(asctime)s %(levelname)s %(message)s',
+}
 DB = {
     'host': 'rethinkdb',
     'port': 28015,
@@ -38,6 +43,7 @@ def logScrape(log, f):
     except Exception as e:
         log['fail'] = logStamp()
     finally:
+        logging.info(json.dumps(log))
         r.table('log').insert(log).run()
 
 def logRecentScrape(filter, minutes):
@@ -56,16 +62,19 @@ def scrapeLive():
     }
     logScrape(log, lambda: scrape_projects_live.scrape())
 
-print('Started preparing')
+logging.basicConfig(**LOGGING)
+logging.getLogger('requests').setLevel(logging.WARNING)
+
+logging.info('Started preparing')
 connection = r.connect(**DB).repl()
 connection.repl()
 if DATABASE not in r.db_list().run():
-    print('Creating database %s' % DATABASE)
+    logging.info('Creating database %s' % DATABASE)
     r.db_create(DATABASE).run()
 connection.use(DATABASE)
 for table in TABLES:
     if table['name'] not in r.table_list().run():
-        print('Creating table %s' % table['name'])
+        logging.info('Creating table %s' % table['name'])
         if 'primary' in table:
             r.table_create(table['name'], primary_key=table['primary']).run()
         else:
@@ -74,21 +83,21 @@ for table in TABLES:
     indexes = set(r.table(table['name']).index_list().run())
     indexes = set(table['indexes']) - indexes
     for index in indexes:
-        print('Creating index %s on %s' % (index, table['name']))
+        logging.info('Creating index %s on %s' % (index, table['name']))
         r.table(table['name']).index_create(index).run()
 r.wait()
-print('Finished preparing')
+logging.info('Finished preparing')
 
 # https://github.com/dbader/schedule/issues/55
-print('Started scheduling jobs')
+logging.info('Started scheduling jobs')
 schedule.every().hour.at('00:00').do(lambda: logRecentScrape('launched', 65))
 schedule.every().hour.at('00:05').do(lambda: logRecentScrape('funded', 65))
 schedule.every().hour.at('00:10').do(scrapeLive)
 if os.environ.get('PROD') is None:
-    print('Running all jobs and exiting')
+    logging.info('Running all jobs and exiting')
     schedule.run_all(0)
     sys.exit(0)
-print('Finished scheduling jobs')
+logging.info('Finished scheduling jobs')
 
 while True:
     schedule.run_pending()
