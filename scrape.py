@@ -8,9 +8,8 @@ LOGGING = {
 }
 DB = {
     'host': 'rethinkdb',
-    'port': 28015,
+    'db': 'kickstarter',
 }
-DATABASE = 'kickstarter'
 TABLES = [
     {
         'name': 'log',
@@ -44,7 +43,8 @@ def logScrape(log, f):
         log['fail'] = logStamp()
     finally:
         logging.info(json.dumps(log))
-        r.table('log').insert(log).run()
+        with r.connect(**DB) as connection:
+            r.table('log').insert(log).run(connection)
 
 def logRecentScrape(filter, minutes):
     log = {
@@ -66,12 +66,12 @@ logging.basicConfig(**LOGGING)
 logging.getLogger('requests').setLevel(logging.WARNING)
 
 logging.info('Started preparing')
-connection = r.connect(**DB).repl()
+connection = r.connect(host=DB['host']).repl()
 connection.repl()
-if DATABASE not in r.db_list().run():
-    logging.info('Creating database %s' % DATABASE)
-    r.db_create(DATABASE).run()
-connection.use(DATABASE)
+if DB['db'] not in r.db_list().run():
+    logging.info('Creating database %s' % DB['db'])
+    r.db_create(DB['db']).run()
+connection.use(DB['db'])
 for table in TABLES:
     if table['name'] not in r.table_list().run():
         logging.info('Creating table %s' % table['name'])
@@ -86,6 +86,7 @@ for table in TABLES:
         logging.info('Creating index %s on %s' % (index, table['name']))
         r.table(table['name']).index_create(index).run()
 r.wait()
+connection.close()
 logging.info('Finished preparing')
 
 # https://github.com/dbader/schedule/issues/55

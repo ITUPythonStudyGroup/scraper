@@ -39,7 +39,7 @@ def addScraped(project):
 
 def scrape():
 
-    connection = r.connect(**DB).repl()
+    connection = r.connect(**DB)
 
     for category in CATEGORIES:
         page = 1
@@ -49,7 +49,7 @@ def scrape():
             projects = json.loads(response.text)['projects']
             projects = list(map(addScraped, projects))
             live = list(filter(lambda p: p['state'] == 'live', projects))
-            result = r.table(TABLE).insert(live, conflict="replace").run()
+            result = r.table(TABLE).insert(live, conflict="replace").run(connection)
             if len(projects) != len(live): break
             page += 1
 
